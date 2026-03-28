@@ -981,3 +981,787 @@ bf(6) = 3 - 1 = 2
 | RR   | 右高   | 右孩子也偏右或等高 | 一次左旋    |
 | LR   | 左高   | 左孩子偏右     | 先左旋，再右旋 |
 | RL   | 右高   | 右孩子偏左     | 先右旋，再左旋 |
+
+# AVL 樹的左旋與右旋
+
+前面我們已經知道，AVL 樹失衡時有四種情況：
+
+* LL
+* RR
+* LR
+* RL
+
+雖然失衡情況有四種，但**基本旋轉操作其實只有兩種**：
+
+* **右旋（Right Rotate）**
+* **左旋（Left Rotate）**
+
+至於 LR、RL，都是由這兩種基本旋轉組合出來的。
+
+## 一、右旋（Right Rotate）
+
+### 1. 右旋的核心概念
+
+右旋可以理解成：
+
+> **把左子樹旋轉上來，原本的根節點往右下移。**
+
+方法宣告如下：
+
+```java
+// 參數：要旋轉的節點
+// 返回值：新的根節點
+private AVLNode rightRotate(AVLNode node) {
+
+}
+```
+
+### 2. 先看最簡單的例子
+
+原本的樹：
+
+```text
+      8
+     /
+    6
+```
+
+現在對 `8` 做右旋。
+
+右旋後會變成：
+
+```text
+      6
+       \
+        8
+```
+
+意思是：
+
+* `8` 原本是根
+* `6` 是 `8` 的左孩子
+* 右旋之後，`6` 上升成新的根
+* `8` 變成 `6` 的右孩子
+
+### 3. 對應的基本想法
+
+用偽代碼表示：
+
+```java
+private AVLNode rightRotate(AVLNode node) {
+    AVLNode leftChild = node.left;
+    leftChild.right = node;
+    return leftChild;
+}
+```
+
+這個版本先幫我們建立一個概念：
+
+* 找到要旋轉節點的左孩子
+* 左孩子上升
+* 原節點下降成它的右孩子
+
+但是，這還不完整。
+
+### 4. 為什麼上面的寫法還不夠？
+
+因為它沒有處理「中間子樹」的去向。
+
+來看更完整的情況：
+
+```text
+       8
+     /   \   
+    6     9
+   / \
+  5   7
+```
+
+這次對 `8` 右旋：
+
+* `8` 要往下
+* `6` 要往上
+* `7` 的位置就必須重新安排
+
+如果只寫：
+
+```java
+AVLNode leftChild = node.left;
+leftChild.right = node;
+```
+
+那原本 `6.right` 的 `7` 就會被覆蓋掉。
+
+所以我們必須先把 `7` 暫存起來。
+
+### 5. 右旋時，中間子樹要怎麼接？
+
+原本：
+
+```text
+       8
+     /   \   
+    6     9
+   / \
+  5   7
+```
+
+右旋之後：
+
+```text
+        6
+      /   \   
+     5     8
+          / \
+         7   9
+```
+
+可以看到：
+
+* `6` 上升
+* `8` 下降
+* 原本 `6` 的右子樹 `7`，改成 `8` 的左子樹
+
+這樣才不會遺失節點，而且仍然符合二叉搜索樹規則。
+
+### 6. 完整的右旋程式碼
+
+```java
+private AVLNode rightRotate(AVLNode node) {
+    AVLNode leftChild = node.left;
+    AVLNode leftRightChild = leftChild.right;
+
+    leftChild.right = node;
+    node.left = leftRightChild;
+
+    return leftChild;
+}
+```
+
+### 7. 右旋時要注意的細節
+
+#### 細節一：node.left 不需要判空嗎？
+
+通常不用。
+
+因為既然要做右旋，表示這個節點一定是**左邊比較高**，那麼左孩子理論上不可能是 `null`。
+
+#### 細節二：程式碼順序很重要
+
+下面這種寫法有問題：
+
+```java
+AVLNode leftChild = node.left;
+leftChild.right = node;
+AVLNode leftRightChild = leftChild.right;
+node.left = leftRightChild;
+```
+
+因為當你先執行：
+
+```java
+leftChild.right = node;
+```
+
+```text
+       8
+     /   \   
+    6     9
+   / \
+  5   7
+```
+
+此時 `leftChild.right` 已經不再是原本的那個節點了，而變成 `node`。
+也就是說，你原本想保存的 `7` 已經拿不到了。
+
+所以一定要先暫存：
+
+```java
+AVLNode leftChild = node.left;
+AVLNode leftRightChild = leftChild.right;
+```
+
+然後才能修改指標。
+
+## 二、左旋（Left Rotate）
+
+左旋和右旋是完全對稱的。
+
+### 1. 左旋的核心概念
+
+左旋可以理解成：
+
+> **把右子樹旋轉上來，原本的根節點往左下移。**
+
+方法宣告：
+
+```java
+private AVLNode leftRotate(AVLNode node) {
+
+}
+```
+
+### 2. 例子
+
+原本的樹：
+
+```text
+          2
+        /  \
+       1    4 
+           /  \
+          3    5
+                \
+                 6
+```
+
+對 `2` 做左旋後：
+
+```text
+         4
+        / \ 
+       2   5
+      / \    \
+     1   3    6
+```
+
+這裡：
+
+* `2` 是要旋轉的節點
+* `4` 是要上升的新根
+* `3` 是中間子樹，要重新換父節點
+
+### 3. 完整的左旋程式碼
+
+```java
+private AVLNode leftRotate(AVLNode node) {
+    AVLNode rightChild = node.right;
+    AVLNode rightLeftChild = rightChild.left;
+
+    rightChild.left = node;
+    node.right = rightLeftChild;
+
+    return rightChild;
+}
+```
+
+### 4. 左旋的理解方式
+
+對照右旋來記：
+
+#### 右旋
+
+* `node.left` 上升
+* `leftChild.right` 改接給 `node.left`
+
+#### 左旋
+
+* `node.right` 上升
+* `rightChild.left` 改接給 `node.right`
+
+## 三、LR：先左旋，再右旋
+
+### 1. LR 是什麼？
+
+LR 的意思是：
+
+* 失衡節點是**左邊高**
+* 但它的左子樹卻是**右邊高**
+
+例如：
+
+```text
+            6
+           / \
+          2   7
+         / \
+        1   4
+           /  \
+          3    5    
+```
+
+這時不能直接右旋，因為它不是 LL，而是 LR。
+
+### 2. LR 的處理方式
+
+要分兩步：
+
+#### 第一步：先對左子樹做左旋
+
+也就是對 `2` 左旋：
+
+```text
+            6
+           / \
+          4   7
+         / \ 
+        2   5
+       / \
+      1   3    
+```
+
+#### 第二步：再對根節點做右旋
+
+對 `6` 右旋：
+
+```text
+            4
+           / \
+          2   6
+         / \ / \
+        1  3 5  7    
+```
+
+### 3. LR 的程式碼
+
+```java
+private AVLNode leftRightRotate(AVLNode node) {
+    node.left = leftRotate(node.left);
+    return rightRotate(node);
+}
+```
+
+### 4. 為什麼這樣寫？
+
+因為：
+
+1. 原本 `node.left` 是左子樹根節點
+2. 左旋之後，左子樹的根節點改變了
+3. 所以要把結果重新接回 `node.left`
+4. 最後再對 `node` 本身做右旋
+
+## 四、RL：先右旋，再左旋
+
+### 1. RL 是什麼？
+
+RL 的意思是：
+
+* 失衡節點是**右邊高**
+* 但它的右子樹卻是**左邊高**
+
+例如：
+
+```text
+            2
+           / \
+          1   6
+             / \
+            4   7
+           / \
+          3   5    
+```
+
+這時不能直接左旋，因為它不是 RR，而是 RL。
+
+### 2. RL 的處理方式
+
+分兩步：
+
+#### 第一步：先對右子樹做右旋
+
+也就是對 `6` 做右旋：
+
+```text
+            2
+           / \
+          1   4
+             / \
+            3   6
+               / \
+              5   7    
+```
+
+#### 第二步：再對根節點做左旋
+
+對 `2` 左旋：
+
+```text
+         4
+        / \ 
+       2   6
+      / \ / \
+     1  3 5  7
+```
+
+### 3. RL 的程式碼
+
+```java
+private AVLNode rightLeftRotate(AVLNode node) {
+    node.right = rightRotate(node.right);
+    return leftRotate(node);
+}
+```
+
+## 五、旋轉後為什麼還要更新高度？
+
+旋轉不只是改變節點位置，還會改變子樹高度。
+
+例如右旋前：
+
+```text
+          5
+         / \ 
+        3   6
+       / \
+      2   4
+     /
+    1
+```
+
+右旋後：
+
+```text
+          3
+         / \ 
+        2   5
+       /   / \
+      1   4   6
+```
+
+原本：
+
+* `5` 的高度較高
+
+旋轉後：
+
+* `5` 被旋轉下去，高度變小了
+* `3` 被旋轉上來，高度也可能改變
+
+所以旋轉完成後，一定要重新計算高度。
+
+## 六、右旋時的高度更新
+
+右旋完成後，節點的高度可能會發生變化，所以也要重新更新高度。
+
+```java
+private AVLNode rightRotate(AVLNode node) {
+    AVLNode leftChild = node.left;
+    AVLNode leftRightChild = leftChild.right;
+
+    leftChild.right = node;
+    node.left = leftRightChild;
+
+    // 先更新旋轉下去的節點
+    updateHeight(node);
+    // 再更新旋轉上來的節點
+    updateHeight(leftChild);
+
+    return leftChild;
+}
+```
+
+### 為什麼先更新 node，再更新 leftChild？
+
+因為右旋之後：
+
+* `node` 會被旋轉下去
+* `leftChild` 會旋轉上來，成為新的根
+
+而 `leftChild` 的高度，必須根據它最新的左右子樹高度來計算。
+其中，它的右子樹正是剛剛旋轉下去的 `node`。
+
+也就是說：
+
+* 如果 `node` 的高度還沒更新
+* 你就先去更新 `leftChild`
+* 那麼 `leftChild` 會拿到一個**舊的 `node.height`**
+* 算出來的高度就可能是錯的
+
+所以正確順序一定是：
+
+1. **先更新旋轉下去的節點 `node`**
+2. **再更新旋轉上來的節點 `leftChild`**
+
+這樣 `leftChild` 在計算高度時，才能取得正確的子樹高度。
+
+### 用圖來理解
+
+例如下面這棵樹做右旋：
+
+```text
+      5                    3
+     / \                  / \    
+    3   6      ->        2   5
+   / \                  /   / \
+  2   4                1   4   6
+ /
+1
+```
+
+右旋後：
+
+* `5` 被旋轉下去
+* `3` 旋轉上來
+
+此時 `3` 的右子樹變成了 `5`。
+所以如果 `5` 的高度還沒先更新，`3` 的高度就會建立在錯誤的基礎上。
+
+因此：
+
+```java
+updateHeight(node);
+updateHeight(leftChild);
+```
+
+這個順序不能顛倒。
+
+## 七、左旋時的高度更新
+
+左旋和右旋一樣，旋轉完成後，也要更新節點高度。
+
+```java
+private AVLNode leftRotate(AVLNode node) {
+    AVLNode rightChild = node.right;
+    AVLNode rightLeftChild = rightChild.left;
+
+    rightChild.left = node;
+    node.right = rightLeftChild;
+
+    updateHeight(node);
+    updateHeight(rightChild);
+
+    return rightChild;
+}
+```
+
+### 為什麼一定要先更新 node，再更新 rightChild？
+
+因為左旋之後：
+
+* `node` 會被旋轉下去
+* `rightChild` 會旋轉上來，成為新的根
+
+而 `rightChild` 的高度，必須根據它最新的左右子樹高度來計算。
+其中，它的左子樹正是剛剛旋轉下去的 `node`。
+
+也就是說：
+
+* 如果 `node` 的高度還沒更新
+* 你就先去更新 `rightChild`
+* 那麼 `rightChild` 會拿到一個**舊的 `node.height`**
+* 算出來的高度就可能是錯的
+
+所以正確順序一定是：
+
+1. **先更新旋轉下去的節點 `node`**
+2. **再更新旋轉上來的節點 `rightChild`**
+
+這樣 `rightChild` 在計算高度時，才能取得正確的子樹高度。
+
+### 用圖來理解
+
+例如下面這棵樹做左旋：
+
+```text
+       2                          4
+      / \                       /   \
+     1   4                     2     6
+        / \           ->      / \   / \
+       3   6                 1   3 5   7 
+          / \
+         5   7
+```
+
+左旋後：
+
+* `2` 被旋轉下去
+* `4` 旋轉上來
+
+此時 `4` 的左子樹變成了 `2`。
+所以如果 `2` 的高度還沒先更新，`4` 的高度就會建立在錯誤的基礎上。
+
+因此：
+
+```java
+updateHeight(node);
+updateHeight(rightChild);
+```
+
+這個順序不能顛倒。
+
+## 八、旋轉後，哪些節點需要更新高度？
+
+旋轉之後，並不是整棵樹的所有節點都要重新更新高度。
+
+真正需要更新的，其實只有兩類節點：
+
+1. **要旋轉下去的節點**
+2. **要旋轉上來的節點**
+
+除此之外，其他節點的子樹結構並沒有改變，所以它們的高度也不會改變。
+
+### 為什麼只需要更新這兩個節點？
+
+因為一次基本旋轉，真正改變父子關係的核心節點只有這兩個：
+
+* 一個往下掉
+* 一個往上升
+
+至於中間那棵「換父節點的子樹」，雖然它的父節點變了，但它自己的左右子樹並沒有變，所以它本身的高度通常不變。
+
+### 看起來「旋轉上來的節點」好像不用更新？
+
+乍看之下，會覺得只有旋轉下去的節點高度會變，旋轉上來的節點高度好像不一定會變。
+
+例如下面這個右旋例子中，`3` 是旋轉上來的節點：
+
+```text
+      5                    3
+     / \                  / \    
+    3   6      ->        2   5
+   / \                  /   / \
+  2   4                1   4   6
+ /
+1
+```
+
+在這個例子裡，`3` 旋轉上來前後，看起來高度似乎沒有明顯改變，所以容易讓人誤以為：
+
+> 只有旋轉下去的節點需要更新，旋轉上來的節點不用更新。
+
+但這個想法其實不對。
+
+### 為什麼旋轉上來的節點也要更新？
+
+我們來看另一個例子，也就是 LR 情況中的第一步：
+先對左子樹做一次左旋。
+
+原本：
+
+```text
+      6
+     / \
+    2   7
+   / \
+  1   4
+      / \
+     3   5
+```
+
+先對 `2` 做左旋後：
+
+```text
+       6                6
+      / \              / \
+     2   7     ->     4   7
+    / \              / \ 
+   1   4            2   5
+      / \          / \
+     3   5        1   3
+```
+
+這裡：
+
+* `2` 是旋轉下去的節點
+* `4` 是旋轉上來的節點
+* `3` 是換父節點的子樹
+
+注意看 `4`：
+
+* 旋轉前，`4` 的高度是 `2`
+* 旋轉後，`4` 的高度變成 `3`
+
+也就是說：
+
+> **旋轉上來的節點，它的高度也可能改變。**
+
+所以不能只更新旋轉下去的節點，
+**旋轉上來的節點也一定要更新。**
+
+### 右旋的高度更新寫法
+
+```java
+private AVLNode rightRotate(AVLNode node) {
+    AVLNode leftChild = node.left;
+    AVLNode leftRightChild = leftChild.right;
+
+    leftChild.right = node;
+    node.left = leftRightChild;
+
+    // 先更新旋轉下去的節點
+    updateHeight(node);
+    // 再更新旋轉上來的節點
+    updateHeight(leftChild);
+
+    return leftChild;
+}
+```
+
+這裡也是同樣道理：
+
+* `node` 先旋轉下去
+* `leftChild` 再旋轉上來
+
+所以更新順序一定是：
+
+```java
+updateHeight(node);
+updateHeight(leftChild);
+```
+
+不能顛倒。
+
+### 雙旋轉需要額外處理高度嗎？
+
+通常不需要單獨再寫一套高度更新邏輯。
+
+因為：
+
+* LR = 左旋 + 右旋
+* RL = 右旋 + 左旋
+
+而每次基本旋轉 `leftRotate()`、`rightRotate()` 內部都已經做好高度更新了，所以直接組合呼叫即可。
+
+例如：
+
+```java
+private AVLNode leftRightRotate(AVLNode node) {
+    node.left = leftRotate(node.left);
+    return rightRotate(node);
+}
+
+private AVLNode rightLeftRotate(AVLNode node) {
+    node.right = rightRotate(node.right);
+    return leftRotate(node);
+}
+```
+
+## 九、四種旋轉程式碼總整理
+
+```java
+private AVLNode rightRotate(AVLNode node) {
+    AVLNode leftChild = node.left;
+    AVLNode leftRightChild = leftChild.right;
+
+    leftChild.right = node;
+    node.left = leftRightChild;
+
+    updateHeight(node);
+    updateHeight(leftChild);
+
+    return leftChild;
+}
+
+private AVLNode leftRotate(AVLNode node) {
+    AVLNode rightChild = node.right;
+    AVLNode rightLeftChild = rightChild.left;
+
+    rightChild.left = node;
+    node.right = rightLeftChild;
+
+    updateHeight(node);
+    updateHeight(rightChild);
+
+    return rightChild;
+}
+
+private AVLNode leftRightRotate(AVLNode node) {
+    node.left = leftRotate(node.left);
+    return rightRotate(node);
+}
+
+private AVLNode rightLeftRotate(AVLNode node) {
+    node.right = rightRotate(node.right);
+    return leftRotate(node);
+}
+```
