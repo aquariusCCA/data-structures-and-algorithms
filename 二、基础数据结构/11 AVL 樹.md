@@ -1765,3 +1765,342 @@ private AVLNode rightLeftRotate(AVLNode node) {
     return leftRotate(node);
 }
 ```
+
+# AVL 樹的 balance 方法
+
+前面我們已經知道，AVL 樹在**新增**或**刪除**節點後，可能會失衡。
+所以我們需要一個方法，在節點失衡時，自動做對應的旋轉，讓它重新恢復平衡。
+
+這個方法就叫做 `balance`。
+
+```java
+private AVLNode balance(AVLNode node) {
+
+}
+```
+
+它的作用可以簡單理解成：
+
+> **檢查目前節點是否失衡，如果失衡，就做正確的旋轉；如果沒有失衡，就直接返回原節點。**
+
+## 1. 先處理 node == null 的情況
+
+如果目前節點本身就是 `null`，那就沒有必要再判斷是否平衡，直接返回 `null` 即可。
+
+```java
+private AVLNode balance(AVLNode node) {
+    if (node == null) {
+        return null;
+    }
+}
+```
+
+## 2. 怎麼判斷節點是否失衡？
+
+我們前面已經寫過 `bf(node)` 方法，用來求一個節點的**平衡因子**。
+
+平衡因子的公式是：
+
+```text
+平衡因子 = 左子樹高度 - 右子樹高度
+```
+
+它的結果有三種主要情況：
+
+### 1）0、1、-1
+
+表示節點是**平衡的**。
+也就是左右子樹高度差沒有超過 1。
+
+### 2）大於 1
+
+表示節點**不平衡**，而且是**左子樹太高**。
+
+### 3）小於 -1
+
+表示節點**不平衡**，而且是**右子樹太高**。
+
+所以在 `balance` 方法中，我們第一步就是先求出目前節點的平衡因子：
+
+```java
+private AVLNode balance(AVLNode node) {
+    if (node == null) {
+        return null;
+    }
+    int bf = bf(node);
+}
+```
+
+## 3. 左邊高時，要繼續判斷是 LL 還是 LR
+
+如果 `bf > 1`，表示目前節點左邊太高。
+但這時還不能立刻決定怎麼旋轉，因為左高又分成兩種情況：
+
+* **LL**
+* **LR**
+
+要怎麼分辨呢？
+
+就要再看：
+
+> **失衡節點的左孩子，它自己的平衡因子是多少？**
+
+### LL 的判斷方式
+
+如果：
+
+* 目前節點左邊高
+* 而且左孩子也是左邊高，或者左右等高
+
+那就是 **LL**
+
+```java
+bf(node) > 1 && bf(node.left) >= 0
+```
+
+這時做一次**右旋**即可。
+
+### LR 的判斷方式
+
+如果：
+
+* 目前節點左邊高
+* 但左孩子是右邊高
+
+那就是 **LR**
+
+```java
+bf(node) > 1 && bf(node.left) < 0
+```
+
+這時不能直接右旋，而要：
+
+* 先對左子樹做左旋
+* 再對根節點做右旋
+
+也就是 **leftRightRotate(node)**
+
+## 4. 右邊高時，要繼續判斷是 RL 還是 RR
+
+如果 `bf < -1`，表示目前節點右邊太高。
+這時同樣也不能直接決定旋轉方式，還要再看右孩子的平衡因子。
+
+### RL 的判斷方式
+
+如果：
+
+* 目前節點右邊高
+* 但右孩子是左邊高
+
+那就是 **RL**
+
+```java
+bf(node) < -1 && bf(node.right) > 0
+```
+
+這時要：
+
+* 先對右子樹做右旋
+* 再對根節點做左旋
+
+也就是 **rightLeftRotate(node)**
+
+### RR 的判斷方式
+
+如果：
+
+* 目前節點右邊高
+* 而且右孩子也是右邊高，或者左右等高
+
+那就是 **RR**
+
+```java
+bf(node) < -1 && bf(node.right) <= 0
+```
+
+這時做一次**左旋**即可。
+
+## 5. balance 方法的完整邏輯
+
+整理後的程式碼如下：
+
+```java
+private AVLNode balance(AVLNode node) {
+    if (node == null) {
+        return null;
+    }
+
+    int bf = bf(node);
+
+    // 左子樹過高
+    if (bf > 1 && bf(node.left) >= 0) { // LL
+        return rightRotate(node);
+    } else if (bf > 1 && bf(node.left) < 0) { // LR
+        return leftRightRotate(node);
+    }
+
+    // 右子樹過高
+    else if (bf < -1 && bf(node.right) > 0) { // RL
+        return rightLeftRotate(node);
+    } else if (bf < -1 && bf(node.right) <= 0) { // RR
+        return leftRotate(node);
+    }
+
+    // 本身平衡，不需要旋轉
+    return node;
+}
+```
+
+## 6. 為什麼最後要 return node？
+
+因為不是每個節點都會失衡。
+
+如果平衡因子是 `0`、`1`、`-1`，表示這個節點本來就平衡，根本不需要旋轉。
+
+所以最後要把原本的節點直接返回：
+
+```java
+return node;
+```
+
+這樣整個方法的意義才完整：
+
+* 失衡 → 旋轉後返回新根
+* 平衡 → 直接返回原節點
+
+## 7. 為什麼插入和刪除都可以用 balance？
+
+因為不論是插入還是刪除，只要造成某個節點的左右高度差超過 1，就要重新調整。
+
+所以 `balance` 可以當成一個通用方法：
+
+* 插入完，往上回溯時可以呼叫它
+* 刪除完，往上回溯時也可以呼叫它
+
+也就是說：
+
+> **只要某個節點可能失衡，就交給 `balance` 處理。**
+
+## 8. 刪除時的特殊情況
+
+前面的四種情況，已經可以處理大多數失衡問題。
+但是在**刪除節點**時，還有兩種特別容易漏掉的情況。
+
+這兩種情況的特點是：
+
+* 失衡節點的某一邊太高
+* 但是它孩子節點的平衡因子剛好是 `0`
+
+這種情況在插入時通常不會出現，但在刪除時很常見。
+
+## 9. 刪除時，左孩子平衡因子為 0 的情況
+
+先看這棵樹：
+
+```text
+         6
+        / \
+       3   8
+      / \
+     1   5
+```
+
+這棵樹目前是平衡的。
+
+現在把 `8` 刪掉：
+
+```text
+         6
+        / 
+       3   
+      / \
+     1   5
+```
+
+此時節點 `6` 失衡了：
+
+* 左子樹高度 = 2
+* 右子樹高度 = 0
+
+所以它是左邊太高。
+
+但問題是，節點 `3` 的左右子樹高度相同，所以：
+
+```text
+bf(3) = 0
+```
+
+這時它不符合原本簡化版的 LL 判斷：
+
+```java
+bf(node.left) > 0
+```
+
+因為這裡不是 `> 0`，而是 `== 0`。
+
+但實際上，這種情況還是應該做一次**右旋**：
+
+```text
+      6           3
+     /           / \
+    3     ->    1   6
+   / \             /
+  1   5           5
+```
+
+所以在刪除情況下，LL 的判斷應該放寬成：
+
+```java
+bf(node.left) >= 0
+```
+
+而不是只寫 `> 0`。
+
+## 10. 刪除時，右孩子平衡因子為 0 的情況
+
+右邊的情況也是同樣道理。
+
+如果：
+
+* 目前節點右邊太高
+* 而且右孩子的平衡因子剛好等於 `0`
+
+那它仍然應該歸類成 **RR**，做一次**左旋**。
+
+所以 RR 的判斷也要放寬成：
+
+```java
+bf(node.right) <= 0
+```
+
+而不是只寫 `< 0`。
+
+## 11. 最終版 balance 方法
+
+考慮刪除時的特殊情況後，完整版本如下：
+
+```java
+private AVLNode balance(AVLNode node) {
+    if (node == null) {
+        return null;
+    }
+
+    int bf = bf(node);
+
+    // 左子樹過高
+    if (bf > 1 && bf(node.left) >= 0) { // LL
+        return rightRotate(node);
+    } else if (bf > 1 && bf(node.left) < 0) { // LR
+        return leftRightRotate(node);
+    }
+
+    // 右子樹過高
+    else if (bf < -1 && bf(node.right) > 0) { // RL
+        return rightLeftRotate(node);
+    } else if (bf < -1 && bf(node.right) <= 0) { // RR
+        return leftRotate(node);
+    }
+
+    return node;
+}
+```
