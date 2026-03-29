@@ -2104,3 +2104,568 @@ private AVLNode balance(AVLNode node) {
     return node;
 }
 ```
+
+# AVL 樹的新增操作
+
+前面我們已經把 AVL 樹的重要基礎方法都準備好了，例如：
+
+* 節點高度的計算
+* 平衡因子的判斷
+* 左旋、右旋
+* `balance` 平衡調整方法
+
+接下來，就可以開始實作 AVL 樹的**新增操作**。
+
+至於查詢操作，因為查詢並不會改變樹的結構，也不會影響平衡，所以它和普通二叉搜索樹的查詢邏輯一樣，這裡就不重複實作了。
+
+真正需要特別處理的是：
+
+* **新增**
+* **刪除**
+
+因為這兩個操作都可能讓樹失衡。
+
+## 一、先定義 put 方法
+
+AVL 樹的新增方法可以叫做 `put`，接收兩個參數：
+
+* `key`
+* `value`
+
+```java
+public void put(int key, Object value) {
+
+}
+```
+
+這個方法是給外部呼叫的入口。
+
+## 二、為什麼要另外寫一個遞迴方法？
+
+為了簡化實作，我們用**遞迴**來完成新增。
+
+原因很簡單：
+
+> 新增節點的過程，本質上就是沿著樹一路往下找，直到找到空位，把新節點放進去。
+
+這種「往左找 / 往右找 / 找到空位就停止」的流程，很適合用遞迴實現。
+
+所以我們再設計一個真正負責遞迴插入的方法：
+
+```java
+private AVLNode doPut(AVLNode node, int key, Object value) {
+
+}
+```
+
+這個方法多了一個參數：
+
+* `node`：表示目前遞迴到哪個節點
+
+也就是說，它的意思是：
+
+> **從 node 這個節點開始，去找 key 應該插入的位置。**
+
+## 三、doPut 的三種情況
+
+整個新增邏輯，其實可以拆成三種情況：
+
+### 1. 找到空位
+
+如果目前節點是 `null`，表示已經找到插入位置了。
+這時直接建立新節點並返回。
+
+### 2. key 已存在
+
+如果目前節點的 key 和要插入的 key 一樣，表示這不是新增，而是更新。
+直接更新 value 即可，不需要繼續往下找。
+
+### 3. 繼續查找
+
+如果既不是空位，也不是相同 key，那就依照二叉搜索樹的規則：
+
+* `key < node.key` → 往左找
+* `key > node.key` → 往右找
+
+## 四、先補上根節點
+
+因為整棵樹總要有一個入口，所以先定義根節點：
+
+```java
+AVLNode root;
+```
+
+然後 `put` 方法要做的事，就是從根節點開始呼叫 `doPut`：
+
+```java
+AVLNode root;
+
+public void put(int key, Object value) {
+    root = doPut(root, key, value);
+}
+```
+
+這裡的重點是：
+
+```java
+root = doPut(root, key, value);
+```
+
+為什麼要賦值給 `root`？
+
+因為插入之後，整棵樹的根節點**有可能改變**。
+
+例如：
+
+* 第一次插入時，根原本是 `null`
+* 插入後，新的節點要成為根
+* 之後如果發生旋轉，新的根也可能改變
+
+所以 `doPut` 的返回值，一定要重新接回 `root`。
+
+## 五、情況一：找到空位，建立新節點
+
+如果遞迴傳進來的 `node == null`，表示已經找到空位了。
+
+這時直接建立新節點：
+
+```java id="4rplsi"
+private AVLNode doPut(AVLNode node, int key, Object value) {
+    // 1. 找到空位，建立新節點
+    if (node == null) {
+        return new AVLNode(key, value);
+    }
+
+    // 2. key 已存在，更新
+    // 3. 繼續查找
+}
+```
+
+新節點建立後，它的高度預設就是 `1`，因為在 `AVLNode` 類裡已經設定好了。
+
+## 六、情況二：key 已存在，直接更新
+
+如果目前節點的 key 和要插入的 key 一樣，表示這個 key 已經存在了。
+
+這時就不需要再新增節點，而是直接更新 value：
+
+```java
+private AVLNode doPut(AVLNode node, int key, Object value) {
+    // 1. 找到空位，建立新節點
+    if (node == null) {
+        return new AVLNode(key, value);
+    }
+
+    // 2. key 已存在，更新
+    if (node.key == key) {
+        node.value = value;
+        return node;
+    }
+
+    // 3. 繼續查找
+}
+```
+
+這裡更新完就可以直接 `return node`，因為：
+
+* 樹的結構沒有改變
+* 高度不會改變
+* 不會失衡
+* 所以也不需要重新平衡
+
+## 七、情況三：繼續往下找空位
+
+如果不是空位，也不是相同 key，那就表示要繼續找。
+
+根據二叉搜索樹規則：
+
+* `key < node.key` → 去左子樹
+* 否則 → 去右子樹
+
+```java 
+private AVLNode doPut(AVLNode node, int key, Object value) {
+    // 1. 找到空位，建立新節點
+    if (node == null) {
+        return new AVLNode(key, value);
+    }
+
+    // 2. key 已存在，更新
+    if (node.key == key) {
+        node.value = value;
+        return node;
+    }
+
+    // 3. 繼續查找
+    if (key < node.key) {
+        node.left = doPut(node.left, key, value);
+    } else {
+        node.right = doPut(node.right, key, value);
+    }
+}
+```
+
+## 八、為什麼要寫成 node.left = doPut(...)？
+
+這一點很重要。
+
+例如往左找時，不是只呼叫：
+
+```java 
+doPut(node.left, key, value);
+```
+
+而是要寫成：
+
+```java
+node.left = doPut(node.left, key, value);
+```
+
+原因是：
+
+> 遞迴找到空位後，會返回一個新節點；
+> 這個新節點必須接回目前節點的左孩子或右孩子，父子關係才會真正建立起來。
+
+也就是說：
+
+* 如果是往左找，返回值要接到 `node.left`
+* 如果是往右找，返回值要接到 `node.right`
+
+這樣整棵樹的結構才會真正被更新。
+
+## 九、插入後還沒結束：還要更新高度
+
+如果只是普通二叉搜索樹，寫到這裡通常就結束了。
+
+但 AVL 樹不一樣。
+
+因為插入節點後，某些祖先節點的高度可能會改變，所以在遞迴返回的路上，要順便更新高度：
+
+```java
+private AVLNode doPut(AVLNode node, int key, Object value) {
+    if (node == null) {
+        return new AVLNode(key, value);
+    }
+
+    if (node.key == key) {
+        node.value = value;
+        return node;
+    }
+
+    if (key < node.key) {
+        node.left = doPut(node.left, key, value);
+    } else {
+        node.right = doPut(node.right, key, value);
+    }
+
+    updateHeight(node);
+}
+```
+
+這一行的意思是：
+
+> 當子節點插入完成後，回頭更新目前這個節點的高度。
+
+## 十、更新完高度後，還要檢查是否失衡
+
+更新高度之後，節點有可能會失衡。
+
+所以接下來還要呼叫 `balance(node)`，檢查是否需要旋轉：
+
+```java
+private AVLNode doPut(AVLNode node, int key, Object value) {
+    if (node == null) {
+        return new AVLNode(key, value);
+    }
+
+    if (node.key == key) {
+        node.value = value;
+        return node;
+    }
+
+    if (key < node.key) {
+        node.left = doPut(node.left, key, value);
+    } else {
+        node.right = doPut(node.right, key, value);
+    }
+
+    updateHeight(node);
+    return balance(node);
+}
+```
+
+這裡一定要 `return balance(node)`，不能只寫：
+
+```java
+balance(node);
+```
+
+因為：
+
+* 如果節點沒有失衡，`balance(node)` 會返回原本的 `node`
+* 如果節點失衡，`balance(node)` 會返回旋轉後的**新根節點**
+
+所以我們必須把它當作返回值傳回去，讓上層正確接住新的子樹根節點。
+
+## 十一、最終版 doPut
+
+整理後，AVL 樹的新增遞迴方法如下：
+
+```java id="ub0s5u"
+private AVLNode doPut(AVLNode node, int key, Object value) {
+    // 1. 找到空位，建立新節點
+    if (node == null) {
+        return new AVLNode(key, value);
+    }
+
+    // 2. key 已存在，更新
+    if (node.key == key) {
+        node.value = value;
+        return node;
+    }
+
+    // 3. 繼續查找
+    if (key < node.key) {
+        node.left = doPut(node.left, key, value);
+    } else {
+        node.right = doPut(node.right, key, value);
+    }
+
+    // 4. 更新高度
+    updateHeight(node);
+
+    // 5. 重新平衡並返回
+    return balance(node);
+}
+```
+
+而對外的 `put` 方法是：
+
+```java
+AVLNode root;
+
+public void put(int key, Object value) {
+    root = doPut(root, key, value);
+}
+```
+
+## 十三、用例子理解新增流程
+
+### 例子一：插入第一個節點 9
+
+一開始整棵樹是空的：
+
+```text
+root = null
+```
+
+呼叫：
+
+```java
+put(9, value)
+```
+
+這時：
+
+```java
+root = doPut(root, key, value);
+```
+
+因為 `root` 是 `null`，所以進入：
+
+```java
+if (node == null) {
+    return new AVLNode(key, value);
+}
+```
+
+於是建立出新節點 `9`，並返回。
+
+最後：
+
+```text
+       9
+     /   \
+   null  null
+```
+
+這時 `9` 就成了根節點。
+
+### 例子二：再插入 5
+
+現在樹是：
+
+```text
+       9
+```
+
+插入 `5`：
+
+* `5 != 9`
+* `5 < 9`
+* 所以往左找
+
+左邊是 `null`，表示找到空位，建立新節點 `5`。
+
+插入後變成：
+
+```text
+       9
+      /
+     5
+```
+
+接著開始遞迴返回，回到節點 `9` 時會做兩件事：
+
+#### 1. 更新高度
+
+* 左子樹高度 = 1
+* 右子樹高度 = 0
+* 所以 `9.height = 2`
+
+#### 2. 檢查平衡
+
+* `bf(9) = 1 - 0 = 1`
+* 沒有失衡
+
+所以 `balance(9)` 最後返回的還是 `9`。
+
+整棵樹保持不變。
+
+### 例子三：再插入 3
+
+現在樹是：
+
+```text 
+       9
+      /
+     5
+```
+
+插入 `3` 的流程是：
+
+* `3 < 9`，往左找
+* `3 < 5`，再往左找
+* 左邊是 `null`，建立新節點 `3`
+
+插入後暫時會變成：
+
+```text
+         9
+        /
+       5
+      /
+     3
+```
+
+#### 先回到節點 5
+
+`3` 插入完成後，遞迴開始往回走。
+
+先回到節點 `5`：
+
+#### 更新高度
+
+* 左子樹高度 = 1
+* 右子樹高度 = 0
+* 所以 `5.height = 2`
+
+#### 檢查平衡
+
+* `bf(5) = 1`
+* 還平衡，不旋轉
+
+所以節點 `5` 原樣返回。
+
+#### 再回到節點 9
+
+接著回到節點 `9`：
+
+#### 更新高度
+
+* 左子樹高度 = 2
+* 右子樹高度 = 0
+* 所以 `9.height = 3`
+
+#### 檢查平衡
+
+* `bf(9) = 2`
+* 已經失衡
+
+樹形如下：
+
+```text
+         9
+        /
+       5
+      /
+     3
+```
+
+這屬於：
+
+* `9` 左邊高
+* `9` 的左孩子 `5` 也左邊高
+
+所以這是 **LL 型失衡**。
+
+#### 做右旋
+
+對 `9` 做右旋後：
+
+```text
+       5
+      / \
+     3   9
+```
+
+這時 `balance(9)` 返回的就不再是 `9`，而是旋轉後的新根 `5`。
+
+最後這個 `5` 會一路返回到最外層：
+
+```java id="nzbq5s"
+root = doPut(root, key, value);
+```
+
+所以根節點被更新成 `5`。
+
+## 十四、為什麼說 AVL 的高度更新是沿著回去的路做的？
+
+這是 AVL 遞迴插入最重要的觀念之一。
+
+當新節點插入完成後，不是一次把整棵樹全部重新算一遍高度，而是：
+
+> **沿著遞迴返回的路徑，一層一層往上更新。**
+
+例如插入 `3` 時，實際順序是：
+
+1. 建立 `3`
+2. 回到 `5`，更新 `5`
+3. 回到 `9`，更新 `9`
+4. 如果 `9` 失衡，就在 `9` 做旋轉
+
+也就是說，只有插入路徑上的節點可能受到影響，其他節點完全不用動。
+
+這也是 AVL 效率高的原因之一。
+
+## 十五、和普通 BST 新增相比，AVL 多了哪兩步？
+
+如果你把 AVL 的新增和普通二叉搜索樹的新增做比較，會發現前面大部分都一樣。
+
+真正多出來的，是最後這兩步：
+
+```java
+updateHeight(node);
+return balance(node);
+```
+
+也就是：
+
+### 1. 更新高度
+
+插入後，祖先節點的高度可能改變。
+
+### 2. 重新平衡
+
+如果高度改變導致失衡，就要透過旋轉恢復平衡。
+
+這就是 AVL 和普通 BST 新增操作最大的差別。
