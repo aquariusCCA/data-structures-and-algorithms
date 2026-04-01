@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-此檔案為 Claude Code（claude.ai/code）在此專案中運作時提供指引。
+此檔案為 Codex（Codex.ai/code）在此專案中運作時提供指引。
 
 ## 專案概述
 
