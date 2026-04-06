@@ -11,3 +11,6 @@
 
 # Maven
 target/
+
+# Java compiled classes
+*.class
