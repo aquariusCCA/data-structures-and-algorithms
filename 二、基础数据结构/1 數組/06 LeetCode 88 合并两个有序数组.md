@@ -465,4 +465,4 @@ public class LeetCode88 {
 
 - 上一篇：[System.arraycopy 的使用](./05%20System.arraycopy%20的使用.md)
 - 返回：[數組入口](./README.md)
-- 下一篇：[链表](../2%20链表.md)
+- 下一篇：[链表](../2%20链表/README.md)
