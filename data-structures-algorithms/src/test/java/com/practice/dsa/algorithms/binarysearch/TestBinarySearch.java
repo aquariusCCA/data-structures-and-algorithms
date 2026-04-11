@@ -171,9 +171,9 @@ public class TestBinarySearch {
         int[] a = { 1, 2, 4, 4, 4, 7, 7 };
 
         // System.out.println(binarySearchLeftmost(a, 4));
-        // System.out.println(binarySearchLeftmost(a, 5));
+         System.out.println(binarySearchLeftmost(a, 5));
         // System.out.println(binarySearchRightmost(a, 4));
-         System.out.println(binarySearchRightmost(a, 5));
+        // System.out.println(binarySearchRightmost(a, 5));
 
         // 求排名
         // assertEquals(6, binarySearchLeftmost(a, 5) + 1);
