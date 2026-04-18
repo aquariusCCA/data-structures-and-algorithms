@@ -1103,7 +1103,7 @@ public static int binarySearchRightmost(int[] a, int target) {
 # 十八、延伸阅读
 
 * [上一節：二分查找 Java 版](./04%20二分查找%20Java%20版.md)
-* [下一節：习题](./06%20习题.md)
+* [下一節：LeetCode 习题](./06%20LeetCode%20习题.md)
 * [回到二分查找目录](./README.md)
 
 ---

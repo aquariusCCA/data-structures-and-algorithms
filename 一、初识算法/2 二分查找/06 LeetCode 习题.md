@@ -1,4 +1,4 @@
-# 习题
+# LeetCode 习题
 
 > - 所属章节：[一、初识算法 / 二分查找](./README.md)
 > - 关键字：LeetCode 704、LeetCode 35、LeetCode 34、搜索插入位置、区间查找、Leftmost、Rightmost
