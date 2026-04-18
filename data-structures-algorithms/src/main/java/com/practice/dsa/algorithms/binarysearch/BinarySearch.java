@@ -1,57 +1,21 @@
 package com.practice.dsa.algorithms.binarysearch;
 
-public class BinarySearch {
+import java.util.Arrays;
+
+public final class BinarySearch {
+    private BinarySearch() {
+    }
+
     /**
-     * 二分查找基础版
-     *
-     * @param a      待查找的升序数组
-     * @param target 待查找的目标值
-     * @return 找到则返回索引 找不到返回 -1
+     * 二分查找基础版：闭区间 [i, j]
      */
     public static int binarySearchBasic(int[] a, int target) {
-        int i = 0, j = a.length - 1; // 设置指针和初值
-        while (i <= j) { // i~j 范围内有东西
-            int m = (i + j) / 2;
-            if (target < a[m]) { // 目标在左边
-                j = m - 1;
-            } else if (a[m] < target) { // 目标在右边
-                i = m + 1;
-            } else { // 找到了
-                return m;
-            }
-        }
-        return -1;
-    }
-
-
-    public static int binarySearchQ1(int[] a, int target) {
-        int i = 0, j = a.length - 1; // 设置指针和初值
-        while (i < j) {
-            int m = (i + j) / 2;
-            if (target < a[m]) { // 目标在左边
-                j = m - 1;
-            } else if (a[m] < target) { // 目标在右边
-                i = m + 1;
-            } else { // 找到了
-                return m;
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * 二分查找改动版
-     *
-     * @param a      待查找的升序数组
-     * @param target 待查找的目标值
-     * @return 找到则返回索引 找不到返回 -1
-     */
-    public static int binarySearchAlternative(int[] a, int target) {
-        int i = 0, j = a.length; // 第一处
-        while (i < j) { // 第二处
+        int i = 0;
+        int j = a.length - 1;
+        while (i <= j) {
             int m = (i + j) >>> 1;
             if (target < a[m]) {
-                j = m; // 第三处
+                j = m - 1;
             } else if (a[m] < target) {
                 i = m + 1;
             } else {
@@ -62,36 +26,68 @@ public class BinarySearch {
     }
 
     /**
-     * 二分查找平衡版
-     *
-     * @param a      待查找的升序数组
-     * @param target 待查找的目标值
-     * @return 找到则返回索引 找不到返回 -1
+     * 二分查找改动版：左闭右开区间 [i, j)
      */
-    public static int binarySearchBalance(int[] a, int target) {
-        int i = 0, j = a.length;
-        while (1 < j - i) { // 表示的是「范围内待查找的元素个数 > 1」 时，當範圍內只剩下一個元素的時候就退出循環
+    public static int binarySearchAlternative(int[] a, int target) {
+        int i = 0;
+        int j = a.length;
+        while (i < j) {
             int m = (i + j) >>> 1;
-            if (target < a[m]) { // 目标在左边
+            if (target < a[m]) {
                 j = m;
-            } else { // 目标在 m 或右边
-                i = m;
+            } else if (a[m] < target) {
+                i = m + 1;
+            } else {
+                return m;
             }
         }
-        return (target == a[i]) ? i : -1;
+        return -1;
     }
 
     /**
-     * 二分查找 Leftmost
-     *
-     * @param a      待查找的升序数组
-     * @param target 待查找的目标值
-     * @return
-     *         找到则返回最靠左索引
-     *         找不到返回 -1
+     * 二分查找平衡版：循环只负责缩小范围，最后统一判断。
+     */
+    public static int binarySearchBalance(int[] a, int target) {
+        if (a.length == 0) {
+            return -1;
+        }
+
+        int i = 0;
+        int j = a.length;
+        while (1 < j - i) {
+            int m = (i + j) >>> 1;
+            if (target < a[m]) {
+                j = m;
+            } else {
+                i = m;
+            }
+        }
+        return a[i] == target ? i : -1;
+    }
+
+    /**
+     * Java 标准库版本，找不到时返回 -(插入点 + 1)。
+     */
+    public static int javaBinarySearch(int[] a, int target) {
+        return Arrays.binarySearch(a, target);
+    }
+
+    /**
+     * 从 Arrays.binarySearch 的负数结果还原插入点。
+     */
+    public static int insertionPointFromJavaResult(int result) {
+        if (result >= 0) {
+            throw new IllegalArgumentException("result must be negative when target is not found");
+        }
+        return -result - 1;
+    }
+
+    /**
+     * Leftmost 基础版：找到最左命中位置，找不到返回 -1。
      */
     public static int binarySearchLeftmost1(int[] a, int target) {
-        int i = 0, j = a.length - 1;
+        int i = 0;
+        int j = a.length - 1;
         int candidate = -1;
         while (i <= j) {
             int m = (i + j) >>> 1;
@@ -100,18 +96,42 @@ public class BinarySearch {
             } else if (a[m] < target) {
                 i = m + 1;
             } else {
-                candidate = m; // 记录候选位置
-                j = m - 1; // 继续向左
+                candidate = m;
+                j = m - 1;
             }
         }
         return candidate;
     }
 
-    public static int binarySearchLeftmost(int[] a, int target) {
-        int i = 0, j = a.length - 1;
+    /**
+     * Rightmost 基础版：找到最右命中位置，找不到返回 -1。
+     */
+    public static int binarySearchRightmost1(int[] a, int target) {
+        int i = 0;
+        int j = a.length - 1;
+        int candidate = -1;
         while (i <= j) {
             int m = (i + j) >>> 1;
-            // 當目標小于等于中间值，都要向左找
+            if (target < a[m]) {
+                j = m - 1;
+            } else if (a[m] < target) {
+                i = m + 1;
+            } else {
+                candidate = m;
+                i = m + 1;
+            }
+        }
+        return candidate;
+    }
+
+    /**
+     * Leftmost 进阶版：返回第一个 >= target 的位置。
+     */
+    public static int binarySearchLeftmost(int[] a, int target) {
+        int i = 0;
+        int j = a.length - 1;
+        while (i <= j) {
+            int m = (i + j) >>> 1;
             if (target <= a[m]) {
                 j = m - 1;
             } else {
@@ -122,33 +142,11 @@ public class BinarySearch {
     }
 
     /**
-     * 二分查找 Rightmost
-     *
-     * @param a      待查找的升序数组
-     * @param target 待查找的目标值
-     * @return
-     *         找到则返回最靠右索引
-     *         找不到返回 -1
+     * Rightmost 进阶版：返回最后一个 <= target 的位置。
      */
-    public static int binarySearchRightmost1(int[] a, int target) {
-        int i = 0, j = a.length - 1;
-        int candidate = -1;
-        while (i <= j) {
-            int m = (i + j) >>> 1;
-            if (target < a[m]) {
-                j = m - 1;
-            } else if (a[m] < target) {
-                i = m + 1;
-            } else {
-                candidate = m; // 记录候选位置
-                i = m + 1; // 继续向右
-            }
-        }
-        return candidate;
-    }
-
     public static int binarySearchRightmost(int[] a, int target) {
-        int i = 0, j = a.length - 1;
+        int i = 0;
+        int j = a.length - 1;
         while (i <= j) {
             int m = (i + j) >>> 1;
             if (target < a[m]) {
@@ -158,5 +156,37 @@ public class BinarySearch {
             }
         }
         return i - 1;
+    }
+
+    /**
+     * LeetCode 35：搜索插入位置。
+     */
+    public static int searchInsert(int[] nums, int target) {
+        return binarySearchLeftmost(nums, target);
+    }
+
+    /**
+     * LeetCode 34：搜索目标值的开始和结束位置。
+     */
+    public static int[] searchRange(int[] nums, int target) {
+        int left = binarySearchLeftmost1(nums, target);
+        if (left == -1) {
+            return new int[]{-1, -1};
+        }
+        return new int[]{left, binarySearchRightmost1(nums, target)};
+    }
+
+    /**
+     * 前任：最后一个 < target 的索引，不存在时返回 -1。
+     */
+    public static int predecessorIndex(int[] a, int target) {
+        return binarySearchLeftmost(a, target) - 1;
+    }
+
+    /**
+     * 后任：第一个 > target 的索引，不存在时返回 a.length。
+     */
+    public static int successorIndex(int[] a, int target) {
+        return binarySearchRightmost(a, target) + 1;
     }
 }
